@@ -3,6 +3,7 @@ import streamlit as st
 # 1. Page Config & CSS Injection to hide Streamlit header/footer/icons
 st.set_page_config(page_title="Somerset NHS DKA Tool", layout="wide")
 
+# This hides the 'hamburger' menu, the 'Deploy' button, and the GitHub icon
 hide_st_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -12,7 +13,8 @@ hide_st_style = """
             #stDecoration {display:none;}
             </style>
             """
-st.markdown(hide_st_style, unsafe_text_area=True)
+# FIXED: Changed unsafe_text_area to unsafe_allow_html
+st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # --- APP HEADER ---
 st.title("Adult DKA Clinical Decision Support")
@@ -88,18 +90,24 @@ col_t1, col_t2, col_t3 = st.columns(3)
 
 with col_t1:
     pk = st.number_input("Previous Ketones", min_value=0.0)
-    if pk > 0 and (pk - ket) < 0.5: st.error(f"FAIL: Need 0.5 mmol/L drop (Current: {pk-ket:.1f})")
-    elif pk > 0: st.success("Ketone Target Met")
+    if pk > 0:
+        k_diff = pk - ket
+        if k_diff < 0.5: st.error(f"FAIL: Need 0.5 mmol/L drop (Current: {k_diff:.1f})")
+        else: st.success("Ketone Target Met")
 
 with col_t2:
     pg = st.number_input("Previous Glucose", min_value=0.0)
-    if pg > 0 and (pg - gluc) < 3.0: st.error(f"FAIL: Need 3.0 mmol/L drop (Current: {pg-gluc:.1f})")
-    elif pg > 0: st.success("Glucose Target Met")
+    if pg > 0:
+        g_diff = pg - gluc
+        if g_diff < 3.0: st.error(f"FAIL: Need 3.0 mmol/L drop (Current: {g_diff:.1f})")
+        else: st.success("Glucose Target Met")
 
 with col_t3:
     pb = st.number_input("Previous Bicarb", min_value=0.0)
-    if pb > 0 and (v_bic - pb) < 3.0: st.error(f"FAIL: Need 3.0 mmol/L rise (Current: {v_bic-pb:.1f})")
-    elif pb > 0: st.success("Bicarb Target Met")
+    if pb > 0:
+        b_diff = v_bic - pb
+        if b_diff < 3.0: st.error(f"FAIL: Need 3.0 mmol/L rise (Current: {b_diff:.1f})")
+        else: st.success("Bicarb Target Met")
 
 # --- SECTION 5: RESOLUTION ---
 st.divider()
