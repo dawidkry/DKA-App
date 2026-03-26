@@ -1,7 +1,20 @@
 import streamlit as st
 
+# 1. Page Config & CSS Injection to hide Streamlit header/footer/icons
 st.set_page_config(page_title="Somerset NHS DKA Tool", layout="wide")
 
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            header {visibility: hidden;}
+            footer {visibility: hidden;}
+            .stDeployButton {display:none;}
+            #stDecoration {display:none;}
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_text_area=True)
+
+# --- APP HEADER ---
 st.title("Adult DKA Clinical Decision Support")
 st.caption("Standardized Management based on NHS Somerset Foundation Trust Guidelines")
 
@@ -37,75 +50,61 @@ else:
 severe_criteria = []
 if v_bic < 5.0 or v_ph < 7.1: severe_criteria.append("Bicarb < 5 or pH < 7.1")
 if gcs < 12: severe_criteria.append("GCS < 12")
-if k_plus < 3.5: severe_criteria.append("K+ < 3.5 mmol/L (Action 3: Admission Risk)")
+if k_plus < 3.5: severe_criteria.append("K+ < 3.5 mmol/L (Admission Risk)")
 
 if severe_criteria:
-    st.warning(f"**Severe DKA / Escalation Criteria:** {', '.join(severe_criteria)}. Call Critical Care.")
+    st.warning(f"**Severe DKA / Escalation Criteria Met:** {', '.join(severe_criteria)}. Call Critical Care.")
 
-# --- SECTION 2: POTASSIUM MANAGEMENT (Page 1 & 3) ---
+# --- SECTION 2: POTASSIUM (K+) REPLACEMENT ---
 st.header("2. Potassium (K+) Replacement")
-
-# Logic from Action 3 Table
 if k_plus > 5.5:
-    k_action = "NIL replacement."
-    st.success(f"K+ is {k_plus}: {k_action}")
+    st.success(f"K+ is {k_plus}: **NIL replacement.**")
 elif 3.5 <= k_plus <= 5.5:
-    k_action = "Add 40 mmol/L Potassium Chloride (KCl) to IV fluid."
-    st.warning(f"K+ is {k_plus}: {k_action}")
+    st.warning(f"K+ is {k_plus}: **Add 40 mmol/L KCl to IV fluid.**")
 else:
-    k_action = "SENIOR REVIEW REQUIRED. Additional potassium needs to be given."
-    st.error(f"🚨 CRITICAL K+ ({k_plus}): {k_action}")
+    st.error(f"🚨 CRITICAL K+ ({k_plus}): **SENIOR REVIEW REQUIRED.** Additional potassium needed.")
 
-st.info("""
-**Safety Rules (Page 1/3):**
-* Aim to maintain potassium between **4.0 - 5.0 mmol/L**.
-* Do **NOT** add K+ to the first 1L bag (unless K+ < 3.5).
-* Do **NOT** infuse KCl > 20mmol/hr peripherally.
-""")
+st.info("**Safety:** Aim for K+ 4.0-5.0. No K+ in 1st bag (unless K+ < 3.5). Max 20mmol/hr peripherally.")
 
-if k_plus < 3.5 or k_plus > 5.5:
-    st.error("🚩 MONITOR K+ 2 HOURLY (Level is outside 3.5 - 5.5 range).")
-
-# --- SECTION 3: FLUIDS & INSULIN ---
+# --- SECTION 3: INFUSION MANAGEMENT ---
 st.header("3. Infusion Management")
 col_f1, col_f2 = st.columns(2)
 
 with col_f1:
     st.subheader("IV Fluid & Glucose")
     if gluc < 14.0:
-        st.error("⚠️ GLUCOSE < 14: ADD 10% GLUCOSE at 120mL/hr.")
-        st.write("Continue 0.9% NaCl as needed for volume.")
+        st.error("⚠️ GLUCOSE < 14: **ADD 10% GLUCOSE at 120mL/hr.** Continue 0.9% NaCl for volume.")
     else:
-        st.info("GLUCOSE ≥ 14: 1L 0.9% NaCl regime (1hr, 2hr, 2hr, 4hr).")
+        st.info("GLUCOSE ≥ 14: Standard 0.9% NaCl regime (1hr, 2hr, 2hr, 4hr).")
 
 with col_f2:
     st.subheader("Insulin")
     st.metric("Fixed Rate Insulin (0.1 u/kg/hr)", f"{weight * 0.1:.1f} units/hr")
-    st.write("✅ **Continue usual long-acting basal insulin.**")
+    st.write("✅ **Continue usual long-acting (basal) insulin.**")
 
-# --- SECTION 4: METABOLIC TARGETS (Page 5) ---
+# --- SECTION 4: HOURLY METABOLIC TARGETS ---
 st.header("4. Review Metabolic Targets (Hourly)")
 col_t1, col_t2, col_t3 = st.columns(3)
 
 with col_t1:
     pk = st.number_input("Previous Ketones", min_value=0.0)
     if pk > 0 and (pk - ket) < 0.5: st.error(f"FAIL: Need 0.5 mmol/L drop (Current: {pk-ket:.1f})")
-    elif pk > 0: st.success("Target Met")
+    elif pk > 0: st.success("Ketone Target Met")
 
 with col_t2:
     pg = st.number_input("Previous Glucose", min_value=0.0)
     if pg > 0 and (pg - gluc) < 3.0: st.error(f"FAIL: Need 3.0 mmol/L drop (Current: {pg-gluc:.1f})")
-    elif pg > 0: st.success("Target Met")
+    elif pg > 0: st.success("Glucose Target Met")
 
 with col_t3:
     pb = st.number_input("Previous Bicarb", min_value=0.0)
     if pb > 0 and (v_bic - pb) < 3.0: st.error(f"FAIL: Need 3.0 mmol/L rise (Current: {v_bic-pb:.1f})")
-    elif pb > 0: st.success("Target Met")
+    elif pb > 0: st.success("Bicarb Target Met")
 
 # --- SECTION 5: RESOLUTION ---
 st.divider()
 if ket < 0.3 and v_bic > 18.0 and v_ph > 7.3:
     st.balloons()
-    st.success("✅ DKA RESOLVED: Ketones < 0.3, Bicarb > 18, pH > 7.3.")
+    st.success("✅ **DKA RESOLVED**: Ketones < 0.3, Bicarb > 18, pH > 7.3.")
 else:
-    st.warning("DKA ongoing. Reassess hourly.")
+    st.warning("DKA ongoing. Reassess clinical and metabolic parameters hourly.")
