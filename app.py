@@ -1,6 +1,6 @@
-  import streamlit as st
+import streamlit as st
 
-# 1. Page Config - Using 'expanded' to force the sidebar open
+# 1. Page Config - Force the sidebar to be open by default
 st.set_page_config(
     page_title="Somerset NHS DKA Tool", 
     layout="wide",
@@ -12,8 +12,6 @@ st.title("Adult DKA Clinical Decision Support")
 st.caption("Standardized Management based on NHS Somerset Foundation Trust Guidelines")
 
 # --- STATIC SIDEBAR: CURRENT CLINICAL PARAMETERS ---
-# If the sidebar is still missing after running this, check if the arrow (>) 
-# at the top left of your app is present to manually expand it.
 with st.sidebar:
     st.header("📍 Patient Data Entry")
     st.info("Update these values as results arrive.")
@@ -113,4 +111,4 @@ if ket < 0.3 and v_bic > 18.0 and v_ph > 7.3:
     st.balloons()
     st.success("✅ **DKA RESOLVED**: Ketones < 0.3, Bicarb > 18, pH > 7.3.")
 else:
-    st.warning("DKA ongoing. Reassess clinical and metabolic parameters hourly.")            
+    st.warning("DKA ongoing. Reassess clinical and metabolic parameters hourly.")
