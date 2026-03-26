@@ -1,93 +1,90 @@
 import streamlit as st
 
-st.set_page_config(page_title="Adult DKA Management Tool", layout="wide")
+st.set_page_config(page_title="Somerset NHS DKA Tool", layout="wide")
 
-st.title("Adult Diabetic Ketoacidosis (DKA) Management Tool")
-st.caption("Based on NHS Somerset Foundation Trust Guidelines")
+st.title("Adult DKA Clinical Decision Support")
+st.caption("Standardized Management based on NHS Somerset Foundation Trust Guidelines")
 
-# --- SIDEBAR: PATIENT BASICS ---
+# --- SIDEBAR: CLINICAL PARAMETERS ---
 with st.sidebar:
     st.header("Patient Data")
     weight = st.number_input("Weight (kg)", min_value=10.0, max_value=250.0, value=70.0)
-    glucose = st.number_input("Capillary Blood Glucose (mmol/L)", min_value=0.0, step=0.1)
-    ketones = st.number_input("Ketonaemia (mmol/L)", min_value=0.0, step=0.1)
-    bicarb = st.number_input("Bicarbonate (mmol/L)", min_value=0.0, step=0.1)
-    ph = st.number_input("Venous pH", min_value=6.0, max_value=8.0, step=0.01, value=7.3)
-
-# --- STEP 1: DIAGNOSIS ---
-st.header("1. Diagnosis Check")
-is_dka = (glucose > 11.0 or False) and (ketones >= 3.0) and (bicarb < 15.0 or ph < 7.3)
-
-if is_dka:
-    st.success("DIAGNOSIS CONFIRMED: All 3 criteria met.")
-else:
-    st.warning("DIAGNOSIS NOT MET: Ensure all criteria (Glucose/Known Diabetes, Ketones, and Acidosis) are present.")
-
-# --- STEP 2: IMMEDIATE MANAGEMENT (0-60 MINS) ---
-st.header("2. Immediate Management (0-60 Minutes)")
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.subheader("Fluid Replacement")
-    sbp_low = st.checkbox("Is Patient Shocked? (SBP < 90mmHg)")
     
-    if sbp_low:
-        st.error("ACTION: Give 500mL Sodium Chloride 0.9% over 10-15 mins. Repeat until BP > 90mmHg.")
-    else:
-        st.info("ACTION: Give 1L 0.9% Sodium Chloride over 1 hour.")
+    st.divider()
+    st.subheader("Current Vitals")
+    sbp = st.number_input("Systolic BP (mmHg)", min_value=40, max_value=250, value=120)
+    gcs = st.number_input("GCS Score", min_value=3, max_value=15, value=15)
+    spo2 = st.slider("SpO2 on Air (%)", 70, 100, 98)
+    
+    st.divider()
+    st.subheader("Lab Results")
+    gluc = st.number_input("Glucose (mmol/L)", min_value=0.0, step=0.1)
+    ket = st.number_input("Ketones (mmol/L)", min_value=0.0, step=0.1)
+    v_ph = st.number_input("Venous pH", min_value=6.8, max_value=7.6, step=0.01, value=7.35)
+    v_bic = st.number_input("Bicarbonate (mmol/L)", min_value=0.0, step=0.1)
+    k_plus = st.number_input("Potassium (mmol/L)", min_value=0.0, max_value=10.0, step=0.1, value=4.0)
 
-with col2:
-    st.subheader("Fixed Rate Insulin Infusion")
-    insulin_rate = weight * 0.1
-    st.metric("Insulin Rate", f"{insulin_rate:.1f} units/hr")
-    st.write(f"Prescribe 50 units Actrapid in 49.5ml 0.9% NaCl (1 unit/ml).")
+# --- CRITICAL CARE CHECK (Page 1: Severe DKA) ---
+st.header("1. Severity & Escalation")
+severe_criteria = []
+if v_bic < 5.0 or v_ph < 7.1: severe_criteria.append("Bicarb < 5 or pH < 7.1")
+if gcs < 12: severe_criteria.append("GCS < 12")
+if spo2 < 92: severe_criteria.append("Saturations < 92% on air")
+if k_plus < 3.5: severe_criteria.append("Hypokalaemia (< 3.5 mmol/L) on admission")
+if sbp < 90: severe_criteria.append("Persistent hypotension despite 2L fluid")
 
-# --- STEP 3: POTASSIUM REPLACEMENT ---
-st.header("3. Potassium Replacement")
-k_level = st.number_input("Current Serum Potassium (mmol/L)", min_value=0.0, max_value=10.0, step=0.1, value=4.0)
-
-if k_level > 5.5:
-    st.write("✅ **Potassium Replacement:** Nil")
-elif 3.5 <= k_level <= 5.5:
-    st.write("⚠️ **Potassium Replacement:** Add 40 mmol/L to IV fluid")
+if severe_criteria:
+    st.error(f"🚨 **SEVERE DKA - CALL CRITICAL CARE:** {', '.join(severe_criteria)}")
 else:
-    st.error("🚨 **CRITICAL:** Potassium < 3.5 mmol/L. Senior review required; additional potassium needed.")
+    st.success("Patient does not currently meet Critical Care referral criteria based on provided vitals.")
 
-# --- STEP 4: MONITORING & TARGETS ---
-st.header("4. Treatment Targets & Monitoring")
+# --- ACTION 1: REASSESS (Page 5) ---
+with st.expander("Action 1: Immediate Clinical Red Flags"):
+    cols = st.columns(3)
+    with cols[0]:
+        st.warning("**Poor Urine Output**")
+        st.write("If < 0.5ml/kg/hour: **Catheterise**")
+    with cols[1]:
+        st.warning("**Vomiting/Reduced GCS**")
+        st.write("Consider **NG Tube**")
+    with cols[2]:
+        st.warning("**Persistent Acidosis**")
+        st.write("Consider other causes or CT Head (if GCS < 13)")
 
-st.info("""
-**Targets for Resolution:**
-* Blood Ketones to fall by at least **0.5 mmol/L / hour**
-* Blood Glucose to fall by at least **3 mmol/L / hour**
-* Venous Bicarbonate to rise by **3 mmol/L / hour**
-""")
+# --- ACTION 2: FLUID REGIME (Page 5) ---
+st.header("2. Fluid & Insulin Management")
+tab1, tab2, tab3 = st.tabs(["0-6 Hours", "6-12 Hours", "Beyond 12 Hours"])
 
-# Metabolic Reassessment Logic
-st.subheader("Metabolic Review (60 mins - 6 hours)")
-current_ketones = st.number_input("Current Ketones (after 1hr)", min_value=0.0, step=0.1)
-previous_ketones = st.number_input("Previous Ketones", min_value=0.0, step=0.1)
-
-if previous_ketones > 0:
-    reduction = previous_ketones - current_ketones
-    if reduction < 0.5:
-        st.error(f"Target NOT met (Reduction: {reduction:.1f}). Increase insulin rate by 1 unit/hour and check lines.")
+with tab1:
+    st.subheader("Suggested IV Fluid Regime")
+    if sbp < 90:
+        st.error("SHOCK: 500mL 0.9% NaCl over 10-15 mins. Repeat until SBP > 90.")
     else:
-        st.success(f"Target met (Reduction: {reduction:.1f}). Continue current rate.")
+        st.info("1. 1L 0.9% NaCl over 1 hour\n2. 1L 0.9% NaCl + KCl over 2 hours\n3. 1L 0.9% NaCl + KCl over 2 hours\n4. 1L 0.9% NaCl + KCl over 4 hours")
+    
+    st.metric("Fixed Rate Insulin (0.1 unit/kg/hr)", f"{weight * 0.1:.1f} units/hr")
+    
+    if gluc < 14.0:
+        st.warning("⚠️ **Glucose < 14 mmol/L:** ADD 10% Glucose at 120 mL/hr. Continue 0.9% NaCl to restore volume.")
 
-# Glucose management
-if glucose < 14.0:
-    st.warning("Glucose < 14 mmol/L: Start 10% Glucose at 120 mL/hr alongside 0.9% NaCl.")
+with tab2:
+    st.subheader("Management 6-12 Hours")
+    st.write("* 1L 0.9% NaCl +/- Potassium over 4 hours (250ml/hr)")
+    st.write("* 1L 0.9% NaCl +/- Potassium over 6 hours (125ml/hr)")
+    if k_plus < 3.5 or k_plus > 5.5:
+        st.error("Monitor K+ 2 hourly (level is outside 3.5-5.5 range)")
 
-# --- STEP 5: RESOLUTION ---
-st.header("5. DKA Resolution")
-res_ketones = st.number_input("Final Ketones", min_value=0.0, step=0.1, key="res_k")
-res_bicarb = st.number_input("Final Bicarbonate", min_value=0.0, step=0.1, key="res_bi")
-res_ph = st.number_input("Final pH", min_value=6.0, step=0.01, value=7.4, key="res_ph")
+with tab3:
+    st.subheader("Resolution & Transition")
+    resolved = ket < 0.3 and v_bic > 18.0 and v_ph > 7.3
+    if resolved:
+        st.balloons()
+        st.success("DKA RESOLVED: Convert to subcutaneous insulin if eating/drinking.")
+        st.info("If unable to eat/drink (sepsis/MI), switch to **Variable Rate Insulin Infusion (VRII)**.")
+    else:
+        st.warning("DKA NOT RESOLVED: Continue FRII and check for precipitating factors.")
 
-if res_ketones < 0.3 and res_bicarb > 18.0 and res_ph > 7.3:
-    st.balloons()
-    st.success("DKA RESOLVED: Convert to subcutaneous insulin if patient is eating/drinking.")
-else:
-    st.write("DKA not yet resolved. Continue IV infusion and monitoring.")
+# --- CAUTION GROUPS (Page 5) ---
+st.divider()
+st.subheader("⚠️ Caution: High Risk Groups")
+st.markdown("- Adolescents / Elderly\n- Renal or Cardiac comorbidities\n- **Pregnancy**: See specific DKA policy on Intranet")
