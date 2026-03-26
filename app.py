@@ -1,24 +1,23 @@
 import streamlit as st
 
-# 1. Page Config
+# 1. Page Config - Forces sidebar to be expanded
 st.set_page_config(
     page_title="Somerset NHS DKA Tool", 
     layout="wide",
     initial_sidebar_state="expanded" 
 )
 
-# 2. Targeted CSS Injection
-# This hides ONLY the top-right icons (GitHub, Deploy, Menu) and the red line
+# 2. Refined CSS Injection
+# Targets ONLY the toolbar icons and the top decoration line. 
+# Leaves sidebar and main header containers alone to prevent "disappearing sidebar" issues.
 hide_st_style = """
             <style>
-            /* Target the toolbar containing the menu, github, and deploy buttons */
+            /* Hide the GitHub, Deploy, and Hamburger Menu */
             [data-testid="stToolbar"] {visibility: hidden !important;}
-            /* Target the red/orange decoration line at the top */
             [data-testid="stDecoration"] {display:none !important;}
-            /* Target the specific Deploy button if it persists */
             .stAppDeployButton {display:none !important;}
             
-            /* Remove the white space at the top of the page usually occupied by the header */
+            /* Clean up the top header area */
             [data-testid="stHeader"] {background: rgba(0,0,0,0); height: 0rem;}
             </style>
             """
@@ -28,10 +27,10 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 st.title("Adult DKA Clinical Decision Support")
 st.caption("Standardized Management based on NHS Somerset Foundation Trust Guidelines")
 
-# --- STATIC SIDEBAR: CURRENT CLINICAL PARAMETERS ---
+# --- SIDEBAR: CURRENT PATIENT VALUES ---
 with st.sidebar:
-    st.header("📍 Patient Data Entry")
-    st.info("Update these values as results arrive.")
+    st.header("📍 Current Patient Values")
+    st.info("Enter the most recent clinical/lab data here.")
     
     weight = st.number_input("Weight (kg)", min_value=10.0, max_value=250.0, value=70.0)
     
@@ -52,20 +51,21 @@ with st.sidebar:
 # --- SECTION 1: EMERGENCY TRIGGERS ---
 st.header("1. Emergency Assessment")
 
-# Shock Logic
+# Shock Logic (Page 1)
 if sbp < 90:
-    st.error("🚨 **PATIENT SHOCKED (SBP < 90mmHg)**: Give 500mL 0.9% NaCl over 10-15 mins. Repeat until BP > 90. Seek senior review.")
+    st.error("🚨 **PATIENT SHOCKED (SBP < 90mmHg)**")
+    st.markdown("Give **500mL 0.9% NaCl** over 10-15 mins. Repeat until BP > 90. Seek senior review / Critical Care.")
 else:
-    st.success("SBP ≥ 90mmHg: Follow standard fluid resuscitation (1L over 1hr).")
+    st.success("SBP ≥ 90mmHg: Follow standard fluid resuscitation.")
 
-# Critical Care Triggers
+# Critical Care Triggers (Page 1)
 severe_criteria = []
 if v_bic < 5.0 or v_ph < 7.1: severe_criteria.append("Bicarb < 5 or pH < 7.1")
 if gcs < 12: severe_criteria.append("GCS < 12")
 if k_plus < 3.5: severe_criteria.append("K+ < 3.5 mmol/L")
 
 if severe_criteria:
-    st.warning(f"**Severe DKA Criteria Met:** {', '.join(severe_criteria)}. Call Critical Care.")
+    st.warning(f"**Severe DKA / Escalation Criteria Met:** {', '.join(severe_criteria)}. Call Critical Care.")
 
 # --- SECTION 2: POTASSIUM (K+) REPLACEMENT ---
 st.header("2. Potassium (K+) Replacement")
@@ -85,9 +85,10 @@ col_f1, col_f2 = st.columns(2)
 with col_f1:
     st.subheader("IV Fluid & Glucose")
     if gluc < 14.0:
-        st.error("⚠️ GLUCOSE < 14: **ADD 10% GLUCOSE at 120mL/hr.** Continue 0.9% NaCl for volume.")
+        st.error("⚠️ GLUCOSE < 14: **ADD 10% GLUCOSE at 120mL/hr.**")
+        st.write("Continue 0.9% NaCl separately for volume as required.")
     else:
-        st.info("GLUCOSE ≥ 14: Standard 0.9% NaCl regime.")
+        st.info("GLUCOSE ≥ 14: Standard 0.9% NaCl regime (1hr, 2hr, 2hr, 4hr).")
 
 with col_f2:
     st.subheader("Insulin")
@@ -96,27 +97,28 @@ with col_f2:
 
 # --- SECTION 4: HOURLY METABOLIC TARGETS ---
 st.header("4. Review Metabolic Targets (Hourly)")
+st.write("Input results from **one hour ago** to monitor rate of change:")
 col_t1, col_t2, col_t3 = st.columns(3)
 
 with col_t1:
-    pk = st.number_input("Previous Ketones (1hr ago)", min_value=0.0)
+    pk = st.number_input("Previous Ketones", min_value=0.0, key="pk")
     if pk > 0:
         k_diff = pk - ket
-        if k_diff < 0.5: st.error(f"FAIL: Need 0.5 mmol/L drop (Current: {k_diff:.1f})")
+        if k_diff < 0.5: st.error(f"FAIL: Need 0.5 drop (Current: {k_diff:.1f})")
         else: st.success(f"Target Met (Drop: {k_diff:.1f})")
 
 with col_t2:
-    pg = st.number_input("Previous Glucose (1hr ago)", min_value=0.0)
+    pg = st.number_input("Previous Glucose", min_value=0.0, key="pg")
     if pg > 0:
         g_diff = pg - gluc
-        if g_diff < 3.0: st.error(f"FAIL: Need 3.0 mmol/L drop (Current: {g_diff:.1f})")
+        if g_diff < 3.0: st.error(f"FAIL: Need 3.0 drop (Current: {g_diff:.1f})")
         else: st.success(f"Target Met (Drop: {g_diff:.1f})")
 
 with col_t3:
-    pb = st.number_input("Previous Bicarb (1hr ago)", min_value=0.0)
+    pb = st.number_input("Previous Bicarb", min_value=0.0, key="pb")
     if pb > 0:
         b_diff = v_bic - pb
-        if b_diff < 3.0: st.error(f"FAIL: Need 3.0 mmol/L rise (Current: {b_diff:.1f})")
+        if b_diff < 3.0: st.error(f"FAIL: Need 3.0 rise (Current: {b_diff:.1f})")
         else: st.success(f"Target Met (Rise: {b_diff:.1f})")
 
 # --- SECTION 5: RESOLUTION ---
