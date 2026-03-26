@@ -1,38 +1,22 @@
-import streamlit as st
+  import streamlit as st
 
-# 1. Page Config - Force sidebar to be expanded
+# 1. Page Config - Using 'expanded' to force the sidebar open
 st.set_page_config(
     page_title="Somerset NHS DKA Tool", 
     layout="wide",
     initial_sidebar_state="expanded" 
 )
 
-# 2. Minimalist CSS Injection
-# This ONLY targets the top-right toolbar/buttons and the decoration line.
-# It does NOT touch the header or sidebar containers.
-hide_st_style = """
-            <style>
-            /* Hide the GitHub/Deploy/Meatballs menu icons only */
-            [data-testid="stToolbar"] {visibility: hidden !important;}
-            [data-testid="stDecoration"] {display:none !important;}
-            .stAppDeployButton {display:none !important;}
-            
-            /* Add a subtle border to the sidebar to ensure it's distinct */
-            [data-testid="stSidebar"] {
-                border-right: 1px solid #e6e9ef;
-            }
-            </style>
-            """
-st.markdown(hide_st_style, unsafe_allow_html=True)
-
 # --- APP HEADER ---
 st.title("Adult DKA Clinical Decision Support")
 st.caption("Standardized Management based on NHS Somerset Foundation Trust Guidelines")
 
 # --- STATIC SIDEBAR: CURRENT CLINICAL PARAMETERS ---
+# If the sidebar is still missing after running this, check if the arrow (>) 
+# at the top left of your app is present to manually expand it.
 with st.sidebar:
     st.header("📍 Patient Data Entry")
-    st.info("Update values here to refresh calculations.")
+    st.info("Update these values as results arrive.")
     
     weight = st.number_input("Weight (kg)", min_value=10.0, max_value=250.0, value=70.0)
     
@@ -58,7 +42,7 @@ if sbp < 90:
     st.error("🚨 **PATIENT SHOCKED (SBP < 90mmHg)**")
     st.markdown("Give **500mL 0.9% NaCl** over 10-15 mins. Repeat until BP > 90. Seek senior review.")
 else:
-    st.success("SBP ≥ 90mmHg: Follow standard fluid resuscitation.")
+    st.success("SBP ≥ 90mmHg: Follow standard fluid resuscitation (1L over 1hr).")
 
 # Critical Care Triggers (Page 1)
 severe_criteria = []
@@ -76,9 +60,9 @@ if k_plus > 5.5:
 elif 3.5 <= k_plus <= 5.5:
     st.warning(f"K+ is {k_plus}: **Add 40 mmol/L KCl to IV fluid.**")
 else:
-    st.error(f"🚨 CRITICAL K+ ({k_plus}): **SENIOR REVIEW REQUIRED.**")
+    st.error(f"🚨 CRITICAL K+ ({k_plus}): **SENIOR REVIEW REQUIRED.** Additional potassium needed.")
 
-st.info("**Safety:** Max 20mmol/hr peripherally. No K+ in 1st bag unless K+ < 3.5.")
+st.info("**Safety:** Max 20mmol/hr peripherally. Do not add K+ to the 1st bag unless K+ < 3.5.")
 
 # --- SECTION 3: INFUSION MANAGEMENT ---
 st.header("3. Infusion Management")
@@ -89,7 +73,7 @@ with col_f1:
     if gluc < 14.0:
         st.error("⚠️ GLUCOSE < 14: **ADD 10% GLUCOSE at 120mL/hr.** Continue 0.9% NaCl for volume.")
     else:
-        st.info("GLUCOSE ≥ 14: Continue 0.9% NaCl regime.")
+        st.info("GLUCOSE ≥ 14: Standard 0.9% NaCl regime (1hr, 2hr, 2hr, 4hr).")
 
 with col_f2:
     st.subheader("Insulin")
@@ -98,6 +82,8 @@ with col_f2:
 
 # --- SECTION 4: HOURLY METABOLIC TARGETS ---
 st.header("4. Review Metabolic Targets (Hourly)")
+st.write("Enter the results from **one hour ago** to check progress:")
+
 col_t1, col_t2, col_t3 = st.columns(3)
 
 with col_t1:
@@ -127,4 +113,4 @@ if ket < 0.3 and v_bic > 18.0 and v_ph > 7.3:
     st.balloons()
     st.success("✅ **DKA RESOLVED**: Ketones < 0.3, Bicarb > 18, pH > 7.3.")
 else:
-    st.warning("DKA ongoing. Reassess parameters hourly.")
+    st.warning("DKA ongoing. Reassess clinical and metabolic parameters hourly.")            
