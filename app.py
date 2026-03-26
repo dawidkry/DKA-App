@@ -24,7 +24,7 @@ with st.sidebar:
     v_bic = st.number_input("Bicarbonate (mmol/L)", min_value=0.0, step=0.1)
     k_plus = st.number_input("Potassium (mmol/L)", min_value=0.0, max_value=10.0, step=0.1, value=4.0)
 
-# --- ACTION 1: SEVERITY & ESCALATION (Page 1 & 5) ---
+# --- ACTION 1: SEVERITY & ESCALATION ---
 st.header("1. Severity & Escalation")
 severe_criteria = []
 if v_bic < 5.0 or v_ph < 7.1: severe_criteria.append("Bicarb < 5 or pH < 7.1")
@@ -38,103 +38,83 @@ if severe_criteria:
 else:
     st.success("Patient does not currently meet Critical Care referral criteria.")
 
-with st.expander("View Specialist Contact Details (Page 5)"):
-    st.markdown("""
-    * **Diabetes Specialist Nurses (DSN):** Office 2791, 3670 | Bleep 2392
-    * **Registrars:** Bleeps 2050 & 2051
-    * **Consultants:** via Switchboard
-    * *Refer to Specialist Team within 24 hours.*
+# --- NEW SECTION: LONG-ACTING INSULIN (Page 2) ---
+st.header("2. Basal (Long-Acting) Insulin")
+st.warning("⚠️ **IMPORTANT:** Regular subcutaneous long-acting insulin MUST be continued at the usual dose and time.")
+
+with st.expander("View Protocol for Basal Insulin"):
+    st.write("""
+    If the patient normally takes any of the following, do NOT stop them:
+    * **Lantus, Abasaglar, Toujeo, Levemir, Tresiba, Humulin I, Insulatard, Insuman Basal, Semglee.**
+    * Administer at the usual dose and time even while on Fixed Rate IV Insulin.
     """)
+    basal_given = st.checkbox("Confirmed: Long-acting insulin prescribed/administered?")
+    if not basal_given:
+        st.error("ACTION REQUIRED: Prescribe usual long-acting insulin on the chart.")
 
-# --- ACTION 2: FLUID & POTASSIUM (Page 1 & 3) ---
-st.header("2. Fluid & Potassium Management")
+# --- ACTION 2: FLUID & POTASSIUM ---
+st.header("3. Fluid & Potassium Management")
 
-# Potassium Logic from Action 3, Page 1
-st.subheader("Potassium Replacement (Action 3)")
+# Potassium Logic (Page 1)
+st.subheader("Potassium Replacement")
 if k_plus > 5.5:
-    st.success("Potassium > 5.5 mmol/L: **Nil replacement.**")
+    st.success("K+ > 5.5: Nil replacement.")
 elif 3.5 <= k_plus <= 5.5:
-    st.warning("Potassium 3.5 - 5.5 mmol/L: **Add 40 mmol/L KCl to IV fluid.**")
+    st.warning("K+ 3.5-5.5: Add 40 mmol/L KCl to IV fluid.")
 else:
-    st.error("Potassium < 3.5 mmol/L: **Senior review required.** Additional potassium needed.")
-
-st.info("**Safety Note:** Do not infuse KCl at a rate > 20mmol/hour peripherally.")
+    st.error("K+ < 3.5: Senior review required. Higher replacement needed.")
 
 tab1, tab2, tab3 = st.tabs(["0-6 Hours", "6-12 Hours", "Beyond 12 Hours"])
 
 with tab1:
-    st.subheader("Suggested IV Fluid Regime (0.9% NaCl)")
+    st.subheader("Fluid Regime (0.9% NaCl)")
     if sbp < 90:
-        st.error("SHOCK: 500mL over 10-15 mins. Repeat until BP > 90. Critical care review if still low after 2L.")
+        st.error("SHOCK: 500mL over 10-15 mins. Repeat until BP > 90.")
     else:
-        st.write("1. 1L over 1 hour")
-        st.write("2. 1L over 2 hours (with KCl)")
-        st.write("3. 1L over 2 hours (with KCl)")
-        st.write("4. 1L over 4 hours (with KCl)")
+        st.write("1. 1L over 1hr | 2. 1L over 2hrs | 3. 1L over 2hrs | 4. 1L over 4hrs")
     
     st.metric("Fixed Rate Insulin (0.1 unit/kg/hr)", f"{weight * 0.1:.1f} units/hr")
-    
     if gluc < 14.0:
-        st.warning("⚠️ **Glucose < 14 mmol/L:** ADD 10% Glucose at 120 mL/hr AND continue 0.9% NaCl for volume.")
+        st.warning("⚠️ **Glucose < 14 mmol/L:** ADD 10% Glucose at 120 mL/hr.")
 
 with tab2:
-    st.subheader("Management 6-12 Hours")
-    st.write("* 1L 0.9% NaCl +/- KCl over 4 hours (250ml/hr)")
-    st.write("* 1L 0.9% NaCl +/- KCl over 6 hours (125ml/hr)")
+    st.subheader("6-12 Hours")
+    st.write("* 1L 0.9% NaCl + KCl over 4 hours (250ml/hr)")
+    st.write("* 1L 0.9% NaCl + KCl over 6 hours (125ml/hr)")
 
 with tab3:
-    st.subheader("Management Beyond 12 Hours")
-    st.write("DKA should resolve by 24 hours. Convert to subcutaneous insulin if eating/drinking.")
+    st.subheader("Beyond 12 Hours")
+    st.write("Aim for resolution within 24 hours. Convert to SC insulin when eating/drinking.")
 
 # --- ACTION 3: METABOLIC TARGETS (Page 5) ---
-st.header("3. Review Metabolic Parameters")
+st.header("4. Review Metabolic Parameters")
 with st.expander("Check Hourly Treatment Targets"):
-    st.write("If targets are NOT met: Check patency of lines and infusion pumps **BEFORE** increasing insulin by 1 unit/hour.")
-    
-    col_t1, col_t2 = st.columns(2)
-    with col_t1:
-        prev_k = st.number_input("Previous Ketones", min_value=0.0)
-        curr_k = st.number_input("Current Ketones", min_value=0.0)
-    with col_t2:
-        prev_g = st.number_input("Previous Glucose", min_value=0.0)
-        curr_g = st.number_input("Current Glucose", min_value=0.0)
+    col_k1, col_k2 = st.columns(2)
+    with col_k1: prev_k = st.number_input("Previous Ketones", min_value=0.0, key="pk")
+    with col_k2: curr_k = st.number_input("Current Ketones", min_value=0.0, key="ck")
     
     if prev_k > 0:
         k_drop = prev_k - curr_k
-        g_drop = prev_g - curr_g
-        if k_drop >= 0.5: st.success(f"Ketone Target Met (Drop: {k_drop:.1f})")
-        else: st.error(f"Ketone Target FAILED (Drop: {k_drop:.1f}. Required: 0.5)")
-        
-        if g_drop >= 3.0: st.success(f"Glucose Target Met (Drop: {g_drop:.1f})")
-        else: st.error(f"Glucose Target FAILED (Drop: {g_drop:.1f}. Required: 3.0)")
+        if k_drop >= 0.5: st.success(f"Target Met (Drop: {k_drop:.1f})")
+        else: st.error(f"Target FAILED (Drop: {k_drop:.1f}. Required: 0.5). Check lines/pumps.")
 
 # --- RESOLUTION CRITERIA (Page 5) ---
-st.header("4. Resolution Status")
-# Combined Page 5 definition
+st.header("5. Resolution Status")
+# Strict definition from bottom of Page 5
 is_resolved = ket < 0.3 and v_bic > 18.0 and v_ph > 7.3
 
 if is_resolved:
     st.balloons()
-    st.success("✅ **DKA RESOLVED** (Ketones < 0.3, Bicarb > 18, pH > 7.3)")
-    st.info("Switch to **Subcutaneous Insulin** (if eating/drinking) or **VRII** (if NBM/Sepsis/MI).")
+    st.success("✅ **DKA RESOLVED** (Ketones < 0.3 for 2 hours, Bicarb > 18, pH > 7.3)")
+    st.info("Switch to **Subcutaneous Insulin** (if eating/drinking) or **VRII** (if NBM).")
 else:
     st.warning("❌ **DKA NOT RESOLVED**")
 
-# --- CAUTION GROUPS (Page 5) ---
+# --- FOOTER: CAUTION GROUPS ---
 st.divider()
-st.subheader("⚠️ High Risk Groups & Red Flags")
+st.subheader("⚠️ Specialist Contacts & Red Flags")
 c1, c2 = st.columns(2)
 with c1:
-    st.markdown("""
-    **Cautions:**
-    - Adolescents / Elderly
-    - Renal/Cardiac comorbidities
-    - **Pregnancy** (Check Intranet Policy)
-    """)
+    st.markdown("**Specialist Teams:**\n- DSN: Bleep 2392\n- Registrars: 2050 / 2051\n- Referral within 24 hours.")
 with c2:
-    st.markdown("""
-    **Red Flags (Action 1):**
-    - SpO2 < 94%: ABG/CXR
-    - GCS < 13: Consider CT Head
-    - Urine < 0.5ml/kg/hr: Catheterise
-    """)
+    st.markdown("**Red Flags:**\n- Urine < 0.5ml/kg/hr: Catheter\n- GCS < 13: CT Head\n- SpO2 < 94%: ABG/CXR")
