@@ -1,22 +1,27 @@
 import streamlit as st
 
-# 1. Page Config - Set sidebar to always be expanded by default
+# 1. Page Config - Force the sidebar to be open by default
 st.set_page_config(
     page_title="Somerset NHS DKA Tool", 
     layout="wide",
     initial_sidebar_state="expanded" 
 )
 
-# CSS Injection to hide Streamlit branding and header
+# 2. Surgical CSS Injection
+# We target only the specific UI elements for a clean look without breaking the sidebar.
 hide_st_style = """
             <style>
-            #MainMenu {visibility: hidden;}
-            header {visibility: hidden;}
-            footer {visibility: hidden;}
-            .stDeployButton {display:none;}
+            /* Hide the GitHub icon, Deploy button, and the Main Menu (hamburger) */
+            .stAppDeployButton {display:none;}
             #stDecoration {display:none;}
-            /* Force sidebar to stay visible on larger screens */
-            [data-testid="stSidebarNav"] {display: none;}
+            [data-testid="stHeader"] {background: rgba(0,0,0,0); height: 0rem;}
+            [data-testid="stToolbar"] {visibility: hidden;}
+            
+            /* Ensure the sidebar container is visible and has a distinct background */
+            [data-testid="stSidebar"] {
+                min-width: 300px !important;
+                max-width: 300px !important;
+            }
             </style>
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
@@ -27,8 +32,9 @@ st.caption("Standardized Management based on NHS Somerset Foundation Trust Guide
 
 # --- STATIC SIDEBAR: CURRENT CLINICAL PARAMETERS ---
 with st.sidebar:
-    st.header("📍 Current Patient Data")
-    st.info("Input the most recent results here.")
+    st.header("📍 Patient Data Entry")
+    st.info("Update these values as new labs/vitals arrive.")
+    
     weight = st.number_input("Weight (kg)", min_value=10.0, max_value=250.0, value=70.0)
     
     st.divider()
@@ -50,7 +56,8 @@ st.header("1. Emergency Assessment")
 
 # Shock Logic (Page 1)
 if sbp < 90:
-    st.error("🚨 **PATIENT SHOCKED (SBP < 90mmHg)**: Give 500mL 0.9% NaCl over 10-15 mins. Repeat until BP > 90.")
+    st.error("🚨 **PATIENT SHOCKED (SBP < 90mmHg)**")
+    st.markdown("Give **500mL 0.9% NaCl** over 10-15 mins. Repeat until BP > 90. Call Critical Care if > 2L required.")
 else:
     st.success("SBP ≥ 90mmHg: Follow standard fluid resuscitation.")
 
@@ -58,7 +65,7 @@ else:
 severe_criteria = []
 if v_bic < 5.0 or v_ph < 7.1: severe_criteria.append("Bicarb < 5 or pH < 7.1")
 if gcs < 12: severe_criteria.append("GCS < 12")
-if k_plus < 3.5: severe_criteria.append("K+ < 3.5 mmol/L (Admission Risk)")
+if k_plus < 3.5: severe_criteria.append("K+ < 3.5 mmol/L")
 
 if severe_criteria:
     st.warning(f"**Severe DKA / Escalation Criteria Met:** {', '.join(severe_criteria)}. Call Critical Care.")
@@ -72,7 +79,7 @@ elif 3.5 <= k_plus <= 5.5:
 else:
     st.error(f"🚨 CRITICAL K+ ({k_plus}): **SENIOR REVIEW REQUIRED.** Additional potassium needed.")
 
-st.info("**Safety:** Aim for K+ 4.0-5.0. No K+ in 1st bag (unless K+ < 3.5). Max 20mmol/hr peripherally.")
+st.info("**Safety:** Max 20mmol/hr peripherally. Do not add K+ to the 1st bag unless K+ < 3.5.")
 
 # --- SECTION 3: INFUSION MANAGEMENT ---
 st.header("3. Infusion Management")
@@ -92,7 +99,7 @@ with col_f2:
 
 # --- SECTION 4: HOURLY METABOLIC TARGETS ---
 st.header("4. Review Metabolic Targets (Hourly)")
-st.write("Enter the results from **one hour ago** to calculate progress:")
+st.write("Enter the results from **one hour ago** to check progress:")
 
 col_t1, col_t2, col_t3 = st.columns(3)
 
@@ -123,4 +130,4 @@ if ket < 0.3 and v_bic > 18.0 and v_ph > 7.3:
     st.balloons()
     st.success("✅ **DKA RESOLVED**: Ketones < 0.3, Bicarb > 18, pH > 7.3.")
 else:
-    st.warning("DKA ongoing. Reassess clinical and metabolic parameters hourly.")
+    st.warning("DKA ongoing. Reassess parameters hourly.")
