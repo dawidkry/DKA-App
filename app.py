@@ -1,26 +1,29 @@
 import streamlit as st
 
-# 1. Page Config - Force the sidebar to be open by default
+# 1. Page Config - Pinned Sidebar
 st.set_page_config(
     page_title="Somerset NHS DKA Tool", 
     layout="wide",
     initial_sidebar_state="expanded" 
 )
 
-# 2. Surgical CSS Injection
-# We target only the specific UI elements for a clean look without breaking the sidebar.
+# 2. Surgical CSS Injection 
+# This targets the specific 'decoration' and 'toolbar' without nuking the sidebar container
 hide_st_style = """
             <style>
-            /* Hide the GitHub icon, Deploy button, and the Main Menu (hamburger) */
-            .stAppDeployButton {display:none;}
-            #stDecoration {display:none;}
-            [data-testid="stHeader"] {background: rgba(0,0,0,0); height: 0rem;}
-            [data-testid="stToolbar"] {visibility: hidden;}
+            /* Hide the GitHub/Deploy/Meatballs menu icons */
+            [data-testid="stToolbar"] {visibility: hidden !important;}
+            [data-testid="stDecoration"] {display:none !important;}
+            .stAppDeployButton {display:none !important;}
             
-            /* Ensure the sidebar container is visible and has a distinct background */
+            /* Ensure Sidebar is visible and has enough width */
             [data-testid="stSidebar"] {
-                min-width: 300px !important;
-                max-width: 300px !important;
+                min-width: 320px !important;
+            }
+            
+            /* Optional: Adjust main content padding since header is gone */
+            .main .block-container {
+                padding-top: 2rem;
             }
             </style>
             """
@@ -33,7 +36,7 @@ st.caption("Standardized Management based on NHS Somerset Foundation Trust Guide
 # --- STATIC SIDEBAR: CURRENT CLINICAL PARAMETERS ---
 with st.sidebar:
     st.header("📍 Patient Data Entry")
-    st.info("Update these values as new labs/vitals arrive.")
+    st.info("Update these values as results arrive.")
     
     weight = st.number_input("Weight (kg)", min_value=10.0, max_value=250.0, value=70.0)
     
@@ -59,7 +62,7 @@ if sbp < 90:
     st.error("🚨 **PATIENT SHOCKED (SBP < 90mmHg)**")
     st.markdown("Give **500mL 0.9% NaCl** over 10-15 mins. Repeat until BP > 90. Call Critical Care if > 2L required.")
 else:
-    st.success("SBP ≥ 90mmHg: Follow standard fluid resuscitation.")
+    st.success("SBP ≥ 90mmHg: Follow standard fluid resuscitation (1L over 1hr).")
 
 # Critical Care Triggers (Page 1)
 severe_criteria = []
