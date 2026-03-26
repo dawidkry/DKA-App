@@ -1,9 +1,13 @@
 import streamlit as st
 
-# 1. Page Config & CSS Injection to hide Streamlit header/footer/icons
-st.set_page_config(page_title="Somerset NHS DKA Tool", layout="wide")
+# 1. Page Config - Set sidebar to always be expanded by default
+st.set_page_config(
+    page_title="Somerset NHS DKA Tool", 
+    layout="wide",
+    initial_sidebar_state="expanded" 
+)
 
-# This hides the 'hamburger' menu, the 'Deploy' button, and the GitHub icon
+# CSS Injection to hide Streamlit branding and header
 hide_st_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -11,28 +15,30 @@ hide_st_style = """
             footer {visibility: hidden;}
             .stDeployButton {display:none;}
             #stDecoration {display:none;}
+            /* Force sidebar to stay visible on larger screens */
+            [data-testid="stSidebarNav"] {display: none;}
             </style>
             """
-# FIXED: Changed unsafe_text_area to unsafe_allow_html
 st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # --- APP HEADER ---
 st.title("Adult DKA Clinical Decision Support")
 st.caption("Standardized Management based on NHS Somerset Foundation Trust Guidelines")
 
-# --- SIDEBAR: CLINICAL PARAMETERS ---
+# --- STATIC SIDEBAR: CURRENT CLINICAL PARAMETERS ---
 with st.sidebar:
-    st.header("Patient Data")
+    st.header("📍 Current Patient Data")
+    st.info("Input the most recent results here.")
     weight = st.number_input("Weight (kg)", min_value=10.0, max_value=250.0, value=70.0)
     
     st.divider()
-    st.subheader("Current Vitals")
+    st.subheader("Vitals")
     sbp = st.number_input("Systolic BP (mmHg)", min_value=40, max_value=250, value=120)
     gcs = st.number_input("GCS Score", min_value=3, max_value=15, value=15)
     spo2 = st.slider("SpO2 on Air (%)", 70, 100, 98)
     
     st.divider()
-    st.subheader("Current Lab Results")
+    st.subheader("Lab Results")
     gluc = st.number_input("Glucose (mmol/L)", min_value=0.0, step=0.1)
     ket = st.number_input("Ketones (mmol/L)", min_value=0.0, step=0.1)
     v_ph = st.number_input("Venous pH", min_value=6.8, max_value=7.6, step=0.01, value=7.35)
@@ -86,28 +92,30 @@ with col_f2:
 
 # --- SECTION 4: HOURLY METABOLIC TARGETS ---
 st.header("4. Review Metabolic Targets (Hourly)")
+st.write("Enter the results from **one hour ago** to calculate progress:")
+
 col_t1, col_t2, col_t3 = st.columns(3)
 
 with col_t1:
-    pk = st.number_input("Previous Ketones", min_value=0.0)
+    pk = st.number_input("Previous Ketones (1hr ago)", min_value=0.0)
     if pk > 0:
         k_diff = pk - ket
         if k_diff < 0.5: st.error(f"FAIL: Need 0.5 mmol/L drop (Current: {k_diff:.1f})")
-        else: st.success("Ketone Target Met")
+        else: st.success(f"Target Met (Drop: {k_diff:.1f})")
 
 with col_t2:
-    pg = st.number_input("Previous Glucose", min_value=0.0)
+    pg = st.number_input("Previous Glucose (1hr ago)", min_value=0.0)
     if pg > 0:
         g_diff = pg - gluc
         if g_diff < 3.0: st.error(f"FAIL: Need 3.0 mmol/L drop (Current: {g_diff:.1f})")
-        else: st.success("Glucose Target Met")
+        else: st.success(f"Target Met (Drop: {g_diff:.1f})")
 
 with col_t3:
-    pb = st.number_input("Previous Bicarb", min_value=0.0)
+    pb = st.number_input("Previous Bicarb (1hr ago)", min_value=0.0)
     if pb > 0:
         b_diff = v_bic - pb
         if b_diff < 3.0: st.error(f"FAIL: Need 3.0 mmol/L rise (Current: {b_diff:.1f})")
-        else: st.success("Bicarb Target Met")
+        else: st.success(f"Target Met (Rise: {b_diff:.1f})")
 
 # --- SECTION 5: RESOLUTION ---
 st.divider()
